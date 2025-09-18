@@ -4,6 +4,7 @@ import com.virtukch.nest.auth.security.CustomUserDetails;
 import com.virtukch.nest.project.dto.*;
 import com.virtukch.nest.project.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,14 +35,25 @@ public class ProjectController {
             새로운 프로젝트 모집글을 생성합니다.
 
             ## 요청 필드
-            - `projectTitle`: 제목 (필수)
-            - `projectDescription`: 상세 설명 (선택)
-            - `tags`: 태그 목록 (선택, 존재하는 태그만 가능)
-            - `parts`: 모집 역할 및 인원 리스트 (필수)
+            - `projectTitle`: 프로젝트 제목 (필수, 빈 문자열 또는 null 값 불가)
+            - `projectDescription`: 프로젝트 상세 설명 (선택, null 값은 빈 문자열로 간주)
+            - `tags`: 태그 목록 (선택, 태그 목록에 존재하는 태그만 설정 가능)
+            - `parts`: 모집 역할 및 인원 리스트 (필수, Map<String, Integer> 형태)
+                - 예: {"FRONTEND": 2, "BACKEND": 1, "DESIGNER": 1}
+                - 가능한 역할: FRONTEND, BACKEND, DESIGNER, PLANNER, DEVOPS, FULLSTACK, ANDROID, IOS
 
+            ## 제약 조건
             ✔️ 로그인된 사용자만 작성 가능
+            ✔️ 프로젝트 제목은 필수 입력 사항
+            ✔️ 모집 역할 및 인원은 최소 1개 이상 필요
             ✔️ 성공 시 생성된 게시글의 URI를 Location 헤더로 반환
-            """
+
+            ## 응답
+            - 201 Created: 생성 성공
+            - 400 Bad Request: 잘못된 요청 (제목 누락, 잘못된 태그 등)
+            - 401 Unauthorized: 인증되지 않은 사용자
+            """,
+        security = {@SecurityRequirement(name = "bearer-key")}
     )
     @PostMapping("/new")
     public ResponseEntity<ProjectResponseDto> createProject(
@@ -61,8 +73,20 @@ public class ProjectController {
         description = """
             특정 프로젝트 모집글의 상세 정보를 조회합니다.
 
-            - `projectId`를 경로 변수로 전달  
-            - 게시글 작성자, 설명, 모집 역할 등 포함
+            ## 요청 파라미터
+            - `projectId`: 조회할 프로젝트의 고유 ID (경로 변수)
+
+            ## 응답 정보
+            - 프로젝트 기본 정보 (제목, 설명, 작성일, 수정일)
+            - 프로젝트 작성자 정보 (이름, 학과, 학번)
+            - 모집 역할별 정보 (역할명, 모집 인원, 현재 인원)
+            - 현재 프로젝트 멤버 목록
+            - 프로젝트 태그 목록
+            - 조회수 정보
+
+            ## 응답 코드
+            - 200 OK: 조회 성공
+            - 404 Not Found: 존재하지 않는 프로젝트
             """
     )
     @GetMapping("/{projectId}")
@@ -74,19 +98,32 @@ public class ProjectController {
     @Operation(
         summary = "전체 프로젝트 모집글 조회",
         description = """
-            모든 프로젝트 모집글을 최신순으로 조회합니다.
+            모든 프로젝트 모집글을 페이지네이션으로 조회합니다. (이 기능은 Postman을 이용하여 테스트하는 것을 추천)
 
             ## 태그 필터링
-            - `?tags=JAVA&tags=SPRING` 등 다중 태그 필터 가능
+            - 태그 필터링을 하지 않으면 전체 프로젝트를 반환합니다.
+            - 태그를 필터링하려면 `?tags=JAVA&tags=SPRING`과 같이 쿼리 파라미터로 전달하세요.
+            - 사용 가능한 태그: JAVA, SPRING, REACT, VUE, ANGULAR, NODE_JS, PYTHON, C, CPP, JAVASCRIPT 등
 
             ## 페이지네이션
-            - `page`: 페이지 번호 (0부터 시작)
-            - `size`: 페이지당 항목 수 (기본값: 10)
+            - 페이지 번호: `?page=0` (기본값: 0, 첫 페이지)
+            - 페이지 크기: `?size=10` (기본값: 10, 페이지당 10개 항목)
+            - 전체 예시: `?page=0&size=10`
 
             ## 정렬
-            - `sort=createdAt,desc` 등
+            - 단일 필드 정렬: `?sort=createdAt,desc` (기본값: createdAt,desc)
+            - 다중 필드 정렬: `?sort=viewCount,desc&sort=createdAt,desc`
+            - 사용 가능한 정렬 필드: createdAt, viewCount, projectTitle
 
-            ✔️ 태그가 없으면 전체 게시글 반환
+            ## 응답 정보
+            - 프로젝트 목록 (제목, 설명, 작성자, 태그, 모집 현황)
+            - 페이지 정보 (현재 페이지, 총 페이지, 총 항목 수)
+
+            ## 전체 사용 예시
+            - `/api/v1/projects?page=0&size=10&sort=createdAt,desc&tags=JAVA&tags=SPRING`
+
+            ✔️ 태그가 없으면 전체 프로젝트 반환
+            ✔️ 삭제된 프로젝트는 조회되지 않음
             """
     )
     @GetMapping
@@ -109,16 +146,43 @@ public class ProjectController {
             summary = "프로젝트 모집글 수정",
             description = """
         기존 프로젝트 모집글의 내용을 수정합니다.
+        PATCH 요청 시, 각 JSON 필드의 처리 방식은 다음과 같습니다:
 
         ## 요청 필드 처리 방식
-        - `projectTitle`: null 또는 생략 시 제목 변경 없음 / 빈 문자열은 허용하지 않음
-        - `projectDescription`: null 또는 생략 시 본문 변경 없음 / 빈 문자열 입력 시 본문 삭제 처리
-        - `tags`: null 또는 생략 시 태그 변경 없음 / 빈 배열 입력 시 모든 태그 제거
-        - `partCounts`: null 또는 생략 시 모집 인원 및 역할 변경 없음 / Map<String, Integer> 형식으로 역할별 인원 지정
 
-        ✔️ 작성자 본인만 수정 가능  
-        ✔️ 수정 가능한 필드는 `ProjectUpdateRequestDto` 참고
-        """
+        📌 projectTitle
+        - "projectTitle": null 또는 생략 → 제목 수정하지 않음
+        - "projectTitle": "" (빈 문자열) → 수정하지 않음 ***특히 주의***
+        - "projectTitle": "새 제목" → 제목 수정
+
+        📌 projectDescription
+        - "projectDescription": null 또는 생략 → 설명 수정하지 않음
+        - "projectDescription": "" → 프로젝트 설명을 전부 삭제
+        - "projectDescription": "새 설명" → 설명 수정
+
+        📌 tags
+        - "tags": null 또는 생략 → 태그 수정하지 않음
+        - "tags": [] → 태그 전부 제거
+        - "tags": ["JAVA", "SPRING"] → 태그 재설정
+
+        📌 parts
+        - "parts": null 또는 생략 → 모집 인원 수정하지 않음
+        - "parts": {} → 모든 모집 역할 제거 (주의: 프로젝트에 최소 1개 역할은 필요)
+        - "parts": {"FRONTEND": 2, "BACKEND": 1} → 모집 역할 재설정
+
+        ## 권한 및 제약 조건
+        ✔️ 작성자 본인만 수정 가능
+        ✔️ 이미 참여한 멤버가 있는 역할의 인원을 현재 멤버 수보다 적게 설정할 수 없음
+        ✔️ 프로젝트에는 최소 1개의 모집 역할이 필요
+
+        ## 응답 코드
+        - 200 OK: 수정 성공
+        - 400 Bad Request: 잘못된 요청 데이터
+        - 401 Unauthorized: 인증되지 않은 사용자
+        - 403 Forbidden: 수정 권한 없음 (작성자가 아님)
+        - 404 Not Found: 존재하지 않는 프로젝트
+        """,
+        security = {@SecurityRequirement(name = "bearer-key")}
     )
     @PatchMapping("/{projectId}")
     public ResponseEntity<ProjectResponseDto> updateProject(
@@ -137,9 +201,27 @@ public class ProjectController {
         description = """
             프로젝트 모집글을 삭제합니다.
 
-            - 작성자 본인만 삭제 가능  
-            - 삭제된 게시글은 조회할 수 없습니다.
-            """
+            ## 요청 파라미터
+            - `projectId`: 삭제할 프로젝트의 고유 ID (경로 변수)
+
+            ## 삭제 조건 및 제약
+            ✔️ 작성자 본인만 삭제 가능
+            ✔️ 프로젝트에 참여 중인 멤버가 있는 경우 삭제 불가
+            ✔️ 처리 대기 중인 지원서가 있는 경우 삭제 불가
+
+            ## 삭제 후 처리
+            - 삭제된 프로젝트는 조회할 수 없습니다
+            - 관련된 프로젝트 태그 정보도 함께 삭제됩니다
+            - 프로젝트 관련 지원서 정보도 함께 삭제됩니다
+
+            ## 응답 코드
+            - 200 OK: 삭제 성공
+            - 401 Unauthorized: 인증되지 않은 사용자
+            - 403 Forbidden: 삭제 권한 없음 (작성자가 아님)
+            - 404 Not Found: 존재하지 않는 프로젝트
+            - 409 Conflict: 삭제 불가능한 상태 (참여 멤버 존재 등)
+            """,
+        security = {@SecurityRequirement(name = "bearer-key")}
     )
     @DeleteMapping("/{projectId}")
     public ResponseEntity<ProjectResponseDto> deleteProject(@AuthenticationPrincipal CustomUserDetails user,
@@ -152,32 +234,44 @@ public class ProjectController {
 
 
     @Operation(
-        summary = "게시글 검색",
+        summary = "프로젝트 모집글 검색",
         description = """
-            키워드를 사용하여 게시글을 검색합니다.
+            키워드를 사용하여 프로젝트 모집글을 검색합니다.
 
             ## 검색 키워드
-            - `keyword`: 검색할 키워드
+            - `keyword`: 검색할 키워드 (필수)
+            - 공백이 포함된 키워드도 검색 가능
 
             ## 검색 타입
-            - `searchType`: 검색 타입 (ALL, TITLE, CONTENT)
-                - ALL: 제목과 내용에서 검색 (기본값)
+            - `searchType`: 검색 범위 지정 (선택, 기본값: ALL)
+                - ALL: 제목과 설명에서 검색 (기본값)
                 - TITLE: 제목에서만 검색
-                - CONTENT: 내용에서만 검색
+                - CONTENT: 설명에서만 검색
 
             ## 태그 필터링
-            - `?tags=JAVA&tags=SPRING` 등으로 전달
+            - 태그 필터링을 추가하려면 `?tags=JAVA&tags=SPRING`과 같이 전달하세요
+            - 검색 결과에서 특정 기술 스택으로 한번 더 필터링 가능
 
             ## 페이지네이션
-            - `page`: 페이지 번호 (0부터 시작)
-            - `size`: 페이지당 항목 수 (기본값: 10)
+            - 페이지 번호: `?page=0` (기본값: 0, 첫 페이지)
+            - 페이지 크기: `?size=10` (기본값: 10, 페이지당 10개 항목)
 
             ## 정렬
-            - 단일: `?sort=createdAt,desc`
-            - 다중: `?sort=viewCount,desc&sort=createdAt,desc`
+            - 단일 필드 정렬: `?sort=createdAt,desc` (기본값: createdAt,desc)
+            - 다중 필드 정렬: `?sort=viewCount,desc&sort=createdAt,desc`
+            - 사용 가능한 정렬 필드: createdAt, viewCount, projectTitle
+
+            ## 검색 결과
+            - 키워드와 일치하는 프로젝트 목록
+            - 각 결과는 기본 프로젝트 정보 (제목, 설명, 작성자, 태그, 모집 현황) 포함
 
             ## 전체 사용 예시
-            - `/api/v1/posts/search?keyword=스프링&searchType=TITLE&page=0&size=10&sort=createdAt,desc&tags=JAVA`
+            - `/api/v1/projects/search?keyword=스프링&searchType=TITLE&page=0&size=10&sort=createdAt,desc&tags=JAVA`
+            - `/api/v1/projects/search?keyword=웹 개발&searchType=ALL&tags=REACT&tags=NODE_JS`
+
+            ## 응답 코드
+            - 200 OK: 검색 성공 (결과가 없어도 200 반환)
+            - 400 Bad Request: 키워드가 누락되거나 잘못된 검색 타입
             """
     )
     @GetMapping("/search")

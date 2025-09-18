@@ -19,11 +19,46 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProjectMemberController {
     @Operation(
-        summary = "프로젝트 역할 목록 조회",
+        summary = "프로젝트 참여 역할 목록 조회",
         description = """
-            프로젝트 참여자의 역할(Enum)을 조회합니다.
-            ✔️ 프론트엔드, 백엔드, 디자이너 등
-            ✔️ 클라이언트에서 역할 선택용으로 사용
+            프로젝트 참여 시 선택 가능한 모든 역할(Enum) 목록을 조회합니다.
+
+            ## 사용 목적
+            - 프로젝트 생성 시 모집 역할 선택
+            - 프로젝트 지원 시 역할 선택
+            - 클라이언트 사이드 드롭다운/선택 UI 구성
+
+            ## 응답 데이터
+            사용 가능한 모든 프로젝트 참여 역할을 문자열 배열로 반환:
+            - FRONTEND: 프론트엔드 개발자
+            - BACKEND: 백엔드 개발자
+            - DESIGNER: UI/UX 디자이너
+            - PLANNER: 기획자
+            - DEVOPS: 데브옵스 엔지니어
+            - FULLSTACK: 풀스택 개발자
+            - ANDROID: 안드로이드 개발자
+            - IOS: iOS 개발자
+
+            ## 응답 예시
+            ```json
+            [
+                "FRONTEND",
+                "BACKEND",
+                "DESIGNER",
+                "PLANNER",
+                "DEVOPS",
+                "FULLSTACK",
+                "ANDROID",
+                "IOS"
+            ]
+            ```
+
+            ## 응답 코드
+            - 200 OK: 조회 성공
+            - 401 Unauthorized: 인증되지 않은 사용자
+
+            ✔️ 정적 데이터이므로 캐싱 가능
+            ✔️ 새로운 역할 추가 시 서버 재배포 필요
             """,
         security = {@SecurityRequirement(name = "bearer-key")}
     )
