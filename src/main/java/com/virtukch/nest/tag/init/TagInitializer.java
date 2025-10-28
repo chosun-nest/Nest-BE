@@ -93,6 +93,7 @@
 //        Category category = Category.ARTIFICIAL_INTELLIGENCE;
 //        return List.of(
 //                new Tag(category, "AI활용"),
+//                new Tag(category, "AI"),
 //                new Tag(category, "머신러닝•딥러닝"),
 //                new Tag(category, "컴퓨터 비전"),
 //                new Tag(category, "자연어 처리"),

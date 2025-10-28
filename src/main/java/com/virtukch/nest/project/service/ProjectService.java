@@ -17,6 +17,7 @@ import com.virtukch.nest.project_member.repository.ProjectMemberRepository;
 import com.virtukch.nest.project_tag.model.ProjectTag;
 import com.virtukch.nest.project_tag.repository.ProjectTagRepository;
 import com.virtukch.nest.tag.model.Tag;
+import com.virtukch.nest.tag.model.Category;
 import com.virtukch.nest.tag.repository.TagRepository;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -89,6 +91,32 @@ public class ProjectService {
          }
 
         log.info("[모집글 생성 완료] projectId={}", project.getProjectId());
+        return ProjectDtoConverter.toCreateResponseDto(project);
+    }
+
+    // v3: payload(JSON) + images
+    @Transactional
+    public ProjectResponseDto createProject(Long memberId, ProjectUpsertRequest payload, List<MultipartFile> images) {
+        String title = payload.getProjectTitle();
+        log.info("[모집글 생성(v3) 시작] title={}, memberId={}", title, memberId);
+        Project project = projectRepository.save(Project.createProject(memberId, title, payload.getProjectDescription()));
+
+        saveProjectTags(project, payload.getTags());
+
+        Map<ProjectMember.Part, Integer> partMap = resolvePartCounts(payload.getPartCounts(), payload.getSlots());
+        if (partMap != null && !partMap.isEmpty()) {
+            Member creator = memberRepository.findById(memberId)
+                    .orElseThrow(() -> new RuntimeException("Member not found"));
+            createProjectMembers(project.getProjectId(), creator.getMemberId(),
+                    partMap, payload.getCreatorPart(), payload.getCreatorRole());
+        }
+
+        if (images != null && !images.isEmpty()){
+            List<String> imageUrls = imageService.uploadImages(images, prefix, project.getProjectId());
+            project.updateProject(project.getProjectTitle(), project.getProjectDescription(), project.getIsRecruiting(), imageUrls);
+        }
+
+        log.info("[모집글 생성(v3) 완료] projectId={}", project.getProjectId());
         return ProjectDtoConverter.toCreateResponseDto(project);
     }
 
@@ -168,9 +196,13 @@ public class ProjectService {
             projectMemberRepository.save(creator);
         }
 
-        projectTagRepository.deleteAllByProjectId(projectId);
-
-        saveProjectTags(project, requestDto.getTags());
+        // 태그: null이면 미수정, 빈 배열이면 모두 제거, 값 있으면 재설정
+        if (requestDto.getTags() != null) {
+            projectTagRepository.deleteAllByProjectId(projectId);
+            if (!requestDto.getTags().isEmpty()) {
+                saveProjectTags(project, requestDto.getTags());
+            }
+        }
 
         if (requestDto.getPartCounts() != null && !requestDto.getPartCounts().isEmpty()) {
             updatePartCounts(projectId, requestDto.getPartCounts());
@@ -183,9 +215,14 @@ public class ProjectService {
     public ProjectResponseDto updateProject(Long projectId, Long memberId, ProjectWithImagesRequestDto requestDto){
         Project project = validateProjectOwnershipAndGet(projectId, memberId);
 
-        List<String> imageUrls = imageService.replaceImages(requestDto.getImages(), prefix, projectId, project.getImageUrlList());
-        project.updateProject(project.getProjectTitle(), project.getProjectDescription(),
-                project.getIsRecruiting(), imageUrls);
+        // 이미지: null이면 미수정, 값 있으면 교체
+        List<String> imageUrls = project.getImageUrlList();
+        if (requestDto.getImages() != null) {
+            imageUrls = imageService.replaceImages(requestDto.getImages(), prefix, projectId, project.getImageUrlList());
+        }
+        // 텍스트/모집여부도 요청 값 기반으로 갱신
+        project.updateProject(requestDto.getProjectTitle(), requestDto.getProjectDescription(),
+                requestDto.getIsRecruiting(), imageUrls);
 
         // Remove members if specified in requestDto before updating part counts
         if (requestDto.getMembersToRemove() != null && !requestDto.getMembersToRemove().isEmpty()) {
@@ -201,14 +238,74 @@ public class ProjectService {
             projectMemberRepository.save(creator);
         }
 
-        projectTagRepository.deleteAllByProjectId(project.getProjectId());
-        saveProjectTags(project, requestDto.getTags());
+        // 태그: null이면 미수정, 빈 배열이면 모두 제거, 값 있으면 재설정
+        if (requestDto.getTags() != null) {
+            projectTagRepository.deleteAllByProjectId(project.getProjectId());
+            if (!requestDto.getTags().isEmpty()) {
+                saveProjectTags(project, requestDto.getTags());
+            }
+        }
 
         if (requestDto.getPartCounts() != null && !requestDto.getPartCounts().isEmpty()) {
             updatePartCounts(projectId, requestDto.getPartCounts());
         }
 
         return ProjectDtoConverter.toUpdateResponseDto(project);
+    }
+
+    // v3: payload(JSON) + images
+    @Transactional
+    public ProjectResponseDto updateProject(Long projectId, Long memberId, ProjectUpsertRequest payload, List<MultipartFile> images){
+        Project project = validateProjectOwnershipAndGet(projectId, memberId);
+
+        List<String> imageUrls = project.getImageUrlList();
+        if (images != null) {
+            imageUrls = imageService.replaceImages(images, prefix, projectId, project.getImageUrlList());
+        }
+        project.updateProject(payload.getProjectTitle(), payload.getProjectDescription(),
+                payload.getIsRecruiting(), imageUrls);
+
+        if (payload.getMembersToRemove() != null && !payload.getMembersToRemove().isEmpty()) {
+            removeProjectMembers(projectId, payload.getMembersToRemove());
+        }
+
+        if (payload.getCreatorPart() != null) {
+            ProjectMember.Part newPart = payload.getCreatorPart();
+            ProjectMember creator = projectMemberRepository.findByProjectIdAndMemberId(projectId, memberId)
+                .orElseThrow(CanNotRemoveCreatorException::new);
+            creator.setPart(newPart);
+            projectMemberRepository.save(creator);
+        }
+
+        if (payload.getTags() != null) {
+            projectTagRepository.deleteAllByProjectId(project.getProjectId());
+            if (!payload.getTags().isEmpty()) {
+                saveProjectTags(project, payload.getTags());
+            }
+        }
+
+        Map<ProjectMember.Part, Integer> partMap = resolvePartCounts(payload.getPartCounts(), payload.getSlots());
+        if (partMap != null && !partMap.isEmpty()) {
+            updatePartCounts(projectId, partMap);
+        }
+
+        return ProjectDtoConverter.toUpdateResponseDto(project);
+    }
+
+    private Map<ProjectMember.Part, Integer> resolvePartCounts(Map<ProjectMember.Part, Integer> partCounts, List<ProjectSlotDto> slots) {
+        if (partCounts != null) {
+            return partCounts;
+        }
+        if (slots == null || slots.isEmpty()) {
+            return null;
+        }
+        Map<ProjectMember.Part, Integer> map = new EnumMap<>(ProjectMember.Part.class);
+        for (ProjectSlotDto slot : slots) {
+            if (slot != null && slot.getPart() != null && slot.getCount() != null) {
+                map.put(slot.getPart(), slot.getCount());
+            }
+        }
+        return map;
     }
 
     @Transactional
@@ -280,8 +377,14 @@ public class ProjectService {
     public ProjectResponseDto deleteProject(Long projectId, Long memberId) {
         Project project = validateProjectOwnershipAndGet(projectId, memberId);
 
+        // 태그 제거
         projectTagRepository.deleteAllByProjectId(projectId);
-        commentRepository.deleteAllByPostId(projectId);
+        // 댓글 제거 (프로젝트 게시판 한정)
+        commentRepository.deleteAllByBoardTypeAndPostId(com.virtukch.nest.comment.model.BoardType.PROJECT, projectId);
+        // 프로젝트 멤버/지원서 제거
+        projectMemberRepository.deleteAll(projectMemberRepository.findByProjectId(projectId));
+        projectApplicationRepository.deleteAll(projectApplicationRepository.findByProjectId(projectId));
+        // 프로젝트 삭제
         projectRepository.delete(project);
         return ProjectDtoConverter.toDeleteResponseDto(project);
     }
@@ -302,11 +405,14 @@ public class ProjectService {
 
     @Transactional
     protected void saveProjectTags(Project project, List<String> tagNames) {
-        List<String> tags = (tagNames == null || tagNames.isEmpty())
-                ? List.of("UNCATEGORIZED")
-                : tagNames;
+        // 생성 시: null/빈 배열이면 UNCATEGORIZED 보장 생성 후 적용
+        if (tagNames == null || tagNames.isEmpty()) {
+            Tag tag = tagService.findOrCreateTag(Category.UNCATEGORIZED, "UNCATEGORIZED");
+            projectTagRepository.save(new ProjectTag(project.getProjectId(), tag.getId()));
+            return;
+        }
 
-        tags.stream()
+        tagNames.stream()
                 .map(tagService::findByNameOrThrow)
                 .map(tag -> new ProjectTag(project.getProjectId(), tag.getId()))
                 .forEachOrdered(projectTagRepository::save);

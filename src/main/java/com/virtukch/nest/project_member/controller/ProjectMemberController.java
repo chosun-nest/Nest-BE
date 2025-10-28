@@ -29,28 +29,17 @@ public class ProjectMemberController {
             - 클라이언트 사이드 드롭다운/선택 UI 구성
 
             ## 응답 데이터
-            사용 가능한 모든 프로젝트 참여 역할을 문자열 배열로 반환:
-            - FRONTEND: 프론트엔드 개발자
-            - BACKEND: 백엔드 개발자
-            - DESIGNER: UI/UX 디자이너
-            - PLANNER: 기획자
-            - DEVOPS: 데브옵스 엔지니어
-            - FULLSTACK: 풀스택 개발자
-            - ANDROID: 안드로이드 개발자
-            - IOS: iOS 개발자
+            사용 가능한 모든 프로젝트 참여 역할(enum)을 문자열 배열로 반환:
+            - BACKEND
+            - FRONTEND
+            - PM
+            - DESIGN
+            - AI
+            - ETC
 
             ## 응답 예시
             ```json
-            [
-                "FRONTEND",
-                "BACKEND",
-                "DESIGNER",
-                "PLANNER",
-                "DEVOPS",
-                "FULLSTACK",
-                "ANDROID",
-                "IOS"
-            ]
+            ["BACKEND", "FRONTEND", "PM", "DESIGN", "AI", "ETC"]
             ```
 
             ## 응답 코드
