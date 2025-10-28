@@ -37,12 +37,27 @@ public class ProjectApplicationService extends BaseTimeEntity {
 
     @Transactional
     public ProjectApplicationResponseDto applyToProject(Long projectId, Long memberId, ProjectApplicationRequestDto requestDto) {
+        return applyToProject(projectId, memberId, requestDto.getPart());
+    }
+
+    @Transactional
+    public ProjectApplicationResponseDto applyToProject(Long projectId, Long memberId, com.virtukch.nest.project_member.model.ProjectMember.Part part) {
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException(projectId));
 
         if (project.getMemberId().equals(memberId)) {
             throw new ProjectOwnerCannotApplyException(); // 또는 IllegalStateException
+        }
+
+        // 모집 중이 아닌 경우 지원 불가
+        if (Boolean.FALSE.equals(project.getIsRecruiting())) {
+            throw new ProjectFullException("현재 모집 중이 아닙니다.");
+        }
+
+        // 이미 프로젝트 멤버인 경우 지원 불가
+        if (projectMemberRepository.findByProjectIdAndMemberId(projectId, memberId).isPresent()) {
+            throw new DuplicateApplicationException();
         }
 
         projectRepository.findById(projectId)
@@ -56,10 +71,17 @@ public class ProjectApplicationService extends BaseTimeEntity {
             throw new DuplicateApplicationException();
         }
 
+        // 파트 정원 초과 시 즉시 차단 (빈 슬롯/정원 확인)
+        long maxCount = projectMemberRepository.countByProjectIdAndPart(projectId, part);
+        long approvedCount = projectMemberRepository.countByProjectIdAndPartAndMemberIdIsNotNull(projectId, part);
+        if (approvedCount >= maxCount) {
+            throw new ProjectFullException(part + " 파트의 모집 인원이 가득 찼습니다.");
+        }
+
         ProjectApplication application = ProjectApplication.builder()
                 .projectId(projectId)
                 .memberId(memberId)
-                .part(requestDto.getPart())
+                .part(part)
                 .status(ProjectApplication.ApplicationStatus.WAITING)
                 .appliedAt(LocalDateTime.now())
                 .build();
@@ -72,7 +94,13 @@ public class ProjectApplicationService extends BaseTimeEntity {
     }
 
     @Transactional
-    public List<ProjectApplicationResponseDto> getApplicationsByProject(Long projectId) {
+    public List<ProjectApplicationResponseDto> getApplicationsByProject(Long projectId, Long requesterId) {
+        // 프로젝트 소유자만 조회 가능
+        Long writerId = projectRepository.searchWriterIdByProjectId(projectId)
+                .orElseThrow(() -> new ProjectNotFoundException(projectId));
+        if (!writerId.equals(requesterId)) {
+            throw new NotProjectOwnerException();
+        }
 
         List<ProjectApplication> applications = projectApplicationRepository.findByProjectId(projectId);
 
@@ -155,6 +183,34 @@ public class ProjectApplicationService extends BaseTimeEntity {
         application.setStatus(ProjectApplication.ApplicationStatus.REJECTED);
         projectApplicationRepository.save(application);
 
+        Member member = memberRepository.findById(application.getMemberId()).orElse(null);
+        return ProjectApplicationDtoConverter.toResponseDto(application, member != null ? member.getMemberName() : "알 수 없음");
+    }
+
+    @Transactional
+    public List<ProjectApplicationResponseDto> getApplicationsByMember(Long memberId) {
+        List<ProjectApplication> applications = projectApplicationRepository.findByMemberId(memberId);
+        return applications.stream().map(app -> {
+            Member member = memberRepository.findById(app.getMemberId()).orElse(null);
+            return ProjectApplicationDtoConverter.toResponseDto(app, member != null ? member.getMemberName() : "알 수 없음");
+        }).toList();
+    }
+
+    @Transactional
+    public ProjectApplicationResponseDto cancelApplication(Long projectId, Long applicationId, Long requesterId) {
+        ProjectApplication application = projectApplicationRepository.findById(applicationId)
+                .orElseThrow(ApplicationNotFoundException::new);
+        if (!application.getProjectId().equals(projectId)) {
+            throw new ApplicationNotFoundException();
+        }
+        if (!application.getMemberId().equals(requesterId)) {
+            throw new NotProjectOwnerException(); // 본인만 취소 가능 (권한 예외 재사용)
+        }
+        if (application.getStatus() != ProjectApplication.ApplicationStatus.WAITING) {
+            throw new AlreadyProcessedApplicationException();
+        }
+        application.setStatus(ProjectApplication.ApplicationStatus.CANCELED);
+        projectApplicationRepository.save(application);
         Member member = memberRepository.findById(application.getMemberId()).orElse(null);
         return ProjectApplicationDtoConverter.toResponseDto(application, member != null ? member.getMemberName() : "알 수 없음");
     }

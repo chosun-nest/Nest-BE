@@ -39,8 +39,8 @@ public class ProjectController {
             - `projectDescription`: 프로젝트 상세 설명 (선택, null 값은 빈 문자열로 간주)
             - `tags`: 태그 목록 (선택, 태그 목록에 존재하는 태그만 설정 가능)
             - `parts`: 모집 역할 및 인원 리스트 (필수, Map<String, Integer> 형태)
-                - 예: {"FRONTEND": 2, "BACKEND": 1, "DESIGNER": 1}
-                - 가능한 역할: FRONTEND, BACKEND, DESIGNER, PLANNER, DEVOPS, FULLSTACK, ANDROID, IOS
+                - 예: {"FRONTEND": 2, "BACKEND": 1, "PM": 1}
+                - 가능한 역할(enum): BACKEND, FRONTEND, PM, DESIGN, AI, ETC
 
             ## 제약 조건
             ✔️ 로그인된 사용자만 작성 가능
@@ -63,7 +63,7 @@ public class ProjectController {
         log.info("[모집글 작성 요청] memberId={}", memberId);
         ProjectResponseDto responseDto = projectService.createProject(memberId, requestDTO);
         return ResponseEntity
-                .created(URI.create("/api/projects/" + responseDto.getProjectId()))
+                .created(URI.create("/api/v1/projects/" + responseDto.getProjectId()))
                 .body(responseDto);
     }
 

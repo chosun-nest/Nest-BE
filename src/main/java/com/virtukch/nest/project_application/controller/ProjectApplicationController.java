@@ -6,6 +6,7 @@ import com.virtukch.nest.project_application.dto.ProjectApplicationResponseDto;
 import com.virtukch.nest.project_application.service.ProjectApplicationService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -56,12 +57,24 @@ public class ProjectApplicationController {
             """,
         security = {@SecurityRequirement(name = "bearer-key")}
     )
-    @PostMapping("/{projectId}/apply")
+    @PostMapping(path = "/{projectId}/apply", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ProjectApplicationResponseDto> projectApplicationApply(@AuthenticationPrincipal CustomUserDetails user,
                                       @PathVariable Long projectId,
                                       @RequestBody ProjectApplicationRequestDto requestDto) {
         Long memberId = user.getMember().getMemberId();
         ProjectApplicationResponseDto responseDto = projectApplicationService.applyToProject(projectId, memberId, requestDto);
+        return ResponseEntity.ok(responseDto);
+    }
+
+    // x-www-form-urlencoded 호환 (Postman에서 form-data 또는 urlencoded로 전송 시)
+    @PostMapping(path = "/{projectId}/apply", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<ProjectApplicationResponseDto> projectApplicationApplyForm(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable Long projectId,
+            @RequestParam("part") com.virtukch.nest.project_member.model.ProjectMember.Part part
+    ) {
+        Long memberId = user.getMember().getMemberId();
+        ProjectApplicationResponseDto responseDto = projectApplicationService.applyToProject(projectId, memberId, part);
         return ResponseEntity.ok(responseDto);
     }
 
@@ -102,9 +115,11 @@ public class ProjectApplicationController {
         security = {@SecurityRequirement(name = "bearer-key")}
     )
     @GetMapping("/{projectId}/applications")
-    public ResponseEntity<List<ProjectApplicationResponseDto>> getProjectApplications(@AuthenticationPrincipal CustomUserDetails user,
+    public ResponseEntity<List<ProjectApplicationResponseDto>> getProjectApplications(
+            @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable Long projectId) {
-        List<ProjectApplicationResponseDto> applications = projectApplicationService.getApplicationsByProject(projectId);
+        Long requesterId = user.getMember().getMemberId();
+        List<ProjectApplicationResponseDto> applications = projectApplicationService.getApplicationsByProject(projectId, requesterId);
         return ResponseEntity.ok(applications);
     }
 
@@ -201,6 +216,32 @@ public class ProjectApplicationController {
         Long memberId = user.getMember().getMemberId();
         ProjectApplicationResponseDto responseDto = projectApplicationService.rejectApplication(projectId, applicationId, memberId);
         return ResponseEntity.ok(responseDto);
+    }
+
+    @Operation(
+        summary = "내 지원서 목록 조회",
+        description = "로그인한 사용자의 모든 프로젝트 지원서를 조회합니다.",
+        security = {@SecurityRequirement(name = "bearer-key")}
+    )
+    @GetMapping("/applications/me")
+    public ResponseEntity<List<ProjectApplicationResponseDto>> getMyApplications(
+            @AuthenticationPrincipal CustomUserDetails user) {
+        Long memberId = user.getMember().getMemberId();
+        return ResponseEntity.ok(projectApplicationService.getApplicationsByMember(memberId));
+    }
+
+    @Operation(
+        summary = "지원 취소",
+        description = "지원자가 본인의 PENDING(대기) 상태 지원서를 취소합니다.",
+        security = {@SecurityRequirement(name = "bearer-key")}
+    )
+    @PostMapping("/{projectId}/applications/{applicationId}/cancel")
+    public ResponseEntity<ProjectApplicationResponseDto> cancelApplication(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable Long projectId,
+            @PathVariable Long applicationId) {
+        Long memberId = user.getMember().getMemberId();
+        return ResponseEntity.ok(projectApplicationService.cancelApplication(projectId, applicationId, memberId));
     }
 
 }

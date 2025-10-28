@@ -65,22 +65,29 @@ public class Project extends BaseTimeEntity {
 
 
 
-    //프로젝트 업데이트 메서드
+    //프로젝트 업데이트 메서드 (부분 수정 규약)
     public void updateProject(String projectTitle,
                               String projectDescription,
                               Boolean isRecruiting) {
-        if(projectTitle != null && !projectTitle.isBlank()) {
-            this.projectTitle = projectTitle;
-        } else throw new InvalidProjectTitleException();
-
-        if(projectDescription != null && !projectDescription.isBlank()) {
-            this.projectDescription = projectDescription;
+        // 제목: null/빈문자열이면 변경하지 않음, 값이 있으면 변경
+        if (projectTitle != null) {
+            if (!projectTitle.isBlank()) {
+                this.projectTitle = projectTitle;
+            } // 빈 문자열이면 변경하지 않음
         }
 
-        if(isRecruiting) {
-            this.isRecruiting = true;
-        } else {
-            this.isRecruiting = false;
+        // 설명: null이면 변경하지 않음, 빈 문자열이면 삭제, 값이 있으면 변경
+        if (projectDescription != null) {
+            if (projectDescription.isBlank()) {
+                this.projectDescription = null; // 빈 문자열은 삭제 의미
+            } else {
+                this.projectDescription = projectDescription;
+            }
+        }
+
+        // 모집여부: null이면 변경하지 않음, 값이 있으면 해당 값으로 설정
+        if (isRecruiting != null) {
+            this.isRecruiting = isRecruiting;
         }
     }
 
