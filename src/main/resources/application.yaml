@@ -2,29 +2,15 @@
 server:
   port: 6030 # Conflict occurred with Tomcat in JSP...ㅠㅠ
 
-# mysql -h 119.219.30.209 -P 6040 -u VIRTUKCH -p --default-character-set=utf8 nest_db
 spring:
   datasource:
-#    url: jdbc:mysql://119.219.30.209:6040/nest_db?serverTimezone=UTC&characterEncoding=UTF-8
-#    username: VIRTUKCH
-#    password: VIRTUKCH
-
-# mysql -h localhost -P 3306 -u VIRTUKCH -p --default-character-set=utf8 nest_db
-#    url : jdbc:mysql://localhost:3306/nest_db?serverTimezone=UTC&characterEncoding=UTF-8
-#    url: jdbc:mysql://119.219.30.209:6040/nest_db?serverTimezone=UTC&characterEncoding=UTF-8
-#    username: VIRTUKCH
-#    password: VIRTUKCH
-
-# mysql -h localhost -P 3306 -u VIRTUKCH -p --default-character-set=utf8 nest_db
-#    url : jdbc:mysql://localhost:3306/nest_db?serverTimezone=UTC&characterEncoding=UTF-8
-#    username: VIRTUKCH
-#    password: VIRTUKCH
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-
-    #지혁
-    url: jdbc:mysql://localhost:3306/nest_db
-    username: nest
-    password: nest
+    # 환경변수로 설정 가능 (Docker Compose 또는 로컬)
+    # 로컬 개발: localhost:3306
+    # Docker: mysql:3306 (서비스명)
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/nest_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${SPRING_DATASOURCE_USERNAME:nest}
+    password: ${SPRING_DATASOURCE_PASSWORD:nest}
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
   mail:
     host: smtp.gmail.com
