@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # MySQL 데이터베이스
+  mysql:
+    image: mysql:8.0
+    container_name: nest-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: nest_db
+      MYSQL_USER: nest
+      MYSQL_PASSWORD: nest
+      MYSQL_ROOT_PASSWORD: root_password
+      TZ: Asia/Seoul
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro  # 초기화 SQL (선택사항)
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    networks:
+      - nest-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "nest", "-pnest"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Boot 백엔드 애플리케이션
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nest-backend
+    restart: always
+    environment:
+      # 데이터베이스 연결 설정
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/nest_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: nest
+      SPRING_DATASOURCE_PASSWORD: nest
+
+      # JPA 설정
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+
+      # JWT 설정
+      JWT_SECRET: VUkwMS0xMjM0LTU2NzgtOWFiYy1kZWZnaGk=
+      JWT_ACCESS_TOKEN_EXPIRATION: 3600000
+      JWT_REFRESH_TOKEN_EXPIRATION: 604800000
+
+      # 메일 설정 (환경에 맞게 수정)
+      SPRING_MAIL_HOST: smtp.gmail.com
+      SPRING_MAIL_PORT: 587
+      SPRING_MAIL_USERNAME: glosori.help@gmail.com
+      SPRING_MAIL_PASSWORD: jzdschbukjgnjffz
+    ports:
+      - "6030:6030"
+    volumes:
+      - ./uploaded-images:/app/uploaded-images  # 업로드된 이미지 저장
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - nest-network
+
+networks:
+  nest-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
