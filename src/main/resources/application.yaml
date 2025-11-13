@@ -46,3 +46,9 @@ springdoc:
     url: /v3/api-docs
     csrf:
       enabled: false  # ✅ CSRF 설정이 Swagger 요청을 차단할 수 있으므로 비활성화
+
+# 애플리케이션 설정
+app:
+  data:
+    init:
+      enabled: true  # 초기 데이터 자동 생성 (태그 등) - false로 설정하면 비활성화
