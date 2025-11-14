@@ -4,6 +4,13 @@
 -- 사용 방법: MySQL에 접속하여 실행
 -- mysql -u root -p nest_db < test_data.sql
 
+-- Character Set 설정
+SET NAMES utf8mb4;
+SET CHARACTER_SET_CLIENT = utf8mb4;
+SET CHARACTER_SET_CONNECTION = utf8mb4;
+SET CHARACTER_SET_RESULTS = utf8mb4;
+SET COLLATION_CONNECTION = utf8mb4_unicode_ci;
+
 USE nest_db;
 
 -- ============================================
