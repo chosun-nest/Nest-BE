@@ -32,14 +32,14 @@ cp .env.example .env
 
 ```bash
 # 백그라운드에서 실행
-docker-compose up -d
+docker compose up -d
 
 # 로그 확인
-docker-compose logs -f
+docker compose logs -f
 
 # 특정 서비스 로그만 보기
-docker-compose logs -f backend
-docker-compose logs -f mysql
+docker compose logs -f backend
+docker compose logs -f mysql
 ```
 
 ### 5. 서비스 확인
@@ -56,16 +56,16 @@ docker-compose logs -f mysql
 
 ```bash
 # 서비스 시작 (빌드 후 실행)
-docker-compose up -d
+docker compose up -d
 
 # 서비스 중지
-docker-compose stop
+docker compose stop
 
 # 서비스 중지 및 컨테이너 삭제
-docker-compose down
+docker compose down
 
 # 서비스 중지 + 볼륨 삭제 (데이터베이스 초기화)
-docker-compose down -v
+docker compose down -v
 ```
 
 ### 재빌드 및 재시작
@@ -73,37 +73,37 @@ docker-compose down -v
 ```bash
 # 코드 수정 후 재빌드
 ./gradlew clean build -x test
-docker-compose up -d --build
+docker compose up -d --build
 
 # 특정 서비스만 재시작
-docker-compose restart backend
+docker compose restart backend
 ```
 
 ### 로그 및 디버깅
 
 ```bash
 # 전체 로그 보기
-docker-compose logs
+docker compose logs
 
 # 실시간 로그 (tail -f)
-docker-compose logs -f
+docker compose logs -f
 
 # 특정 서비스 로그
-docker-compose logs backend
+docker compose logs backend
 
 # 컨테이너 접속
-docker-compose exec backend sh
-docker-compose exec mysql bash
+docker compose exec backend sh
+docker compose exec mysql bash
 ```
 
 ### MySQL 접속
 
 ```bash
 # Docker 컨테이너 내부에서 접속
-docker-compose exec mysql mysql -u nest -p nest_db
+docker compose exec mysql mysql -u nest -p nest_db --default-character-set=utf8mb4
 
 # 로컬에서 접속 (MySQL 클라이언트 설치 필요)
-mysql -h localhost -P 3306 -u nest -p nest_db
+mysql -h localhost -P 3306 -u nest -p nest_db --default-character-set=utf8mb4
 # 비밀번호: nest
 ```
 
@@ -113,7 +113,7 @@ mysql -h localhost -P 3306 -u nest -p nest_db
 
 ```
 .
-├── docker-compose.yml      # Docker Compose 설정
+├── docker compose.yml      # Docker Compose 설정
 ├── Dockerfile              # 백엔드 이미지 빌드
 ├── .dockerignore           # Docker 빌드 제외 파일
 ├── .env.example            # 환경변수 예시
@@ -175,13 +175,13 @@ JWT_REFRESH_TOKEN_EXPIRATION: 604800000
 
 ```bash
 # MySQL 컨테이너 상태 확인
-docker-compose ps
+docker compose ps
 
 # MySQL 로그 확인
-docker-compose logs mysql
+docker compose logs mysql
 
 # MySQL이 완전히 시작되지 않았을 수 있음 (재시작)
-docker-compose restart backend
+docker compose restart backend
 ```
 
 ### 2. 포트 충돌
@@ -191,7 +191,7 @@ docker-compose restart backend
 lsof -i :6030  # 백엔드
 lsof -i :3306  # MySQL
 
-# docker-compose.yml에서 포트 변경
+# docker compose.yml에서 포트 변경
 ports:
   - "6031:6030"  # 호스트:컨테이너
 ```
@@ -204,17 +204,31 @@ ports:
 ./gradlew build -x test
 
 # Docker 이미지 강제 재빌드
-docker-compose build --no-cache
+docker compose build --no-cache
 ```
 
 ### 4. 데이터베이스 초기화
 
 ```bash
 # 모든 컨테이너 및 볼륨 삭제
-docker-compose down -v
+docker compose down -v
 
 # 재시작
-docker-compose up -d
+docker compose up -d
+```
+
+### 5. MySQL 한글 깨짐 문제
+
+```bash
+# MySQL 접속 시 반드시 --default-character-set=utf8mb4 옵션 사용
+docker compose exec mysql mysql -u nest -p nest_db --default-character-set=utf8mb4
+
+# 데이터베이스 문자셋 확인
+docker compose exec mysql mysql -u nest -pnest -e "SHOW VARIABLES LIKE 'character_set%';"
+
+# 이미 데이터가 들어간 경우, 컨테이너를 다시 시작해야 설정 적용됨
+docker compose down -v  # 기존 데이터 삭제
+docker compose up -d    # 새로 시작
 ```
 
 ---
@@ -231,7 +245,7 @@ docker-compose up -d
 
 ```bash
 # 필요한 파일만 업로드
-- docker-compose.yml
+- docker compose.yml
 - Dockerfile
 - build/libs/*.jar
 - .env (환경변수)
@@ -241,10 +255,10 @@ docker-compose up -d
 
 ```bash
 # 서버 접속 후
-docker-compose up -d
+docker compose up -d
 
 # 로그 확인
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### 4. 업데이트 배포
@@ -253,7 +267,7 @@ docker-compose logs -f
 # 새 버전 배포
 ./gradlew clean build -x test  # 로컬에서 빌드
 # 서버에 jar 파일 업로드
-docker-compose up -d --build  # 서버에서 실행
+docker compose up -d --build  # 서버에서 실행
 ```
 
 ---
@@ -265,7 +279,7 @@ docker-compose up -d --build  # 서버에서 실행
 docker stats
 
 # 실행 중인 컨테이너 확인
-docker-compose ps
+docker compose ps
 
 # 헬스 체크
 curl http://localhost:6030/actuator/health  # (Actuator 설정 시)

@@ -1,5 +1,5 @@
 # 1. Eclipse Temurin 17 기반 (OpenJDK 대체)
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 
 # 2. 작업 디렉터리 설정
 WORKDIR /app
