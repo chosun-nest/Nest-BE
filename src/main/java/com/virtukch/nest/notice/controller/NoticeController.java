@@ -180,20 +180,27 @@ public class NoticeController {
                     - 검색된 공지사항 목록
                     - 검색 결과 총 개수
                     - 페이지 정보 (현재 페이지, 전체 페이지, 다음/이전 페이지 존재 여부 등)
-                    
+
                     ## 사용 예시
-                    - `/api/v1/notices/일반공지/search?keyword=수강신청&page=0&size=10`
+                    - `/api/v1/notices/일반공지/search?keyword=수강신청&searchType=TITLE&page=0&size=10`
+                    - `/api/v1/notices/일반공지/search?keyword=홍길동&searchType=AUTHOR&page=0&size=10`
+
+                    ## searchType 옵션
+                    - TITLE: 제목에서만 검색
+                    - AUTHOR: 작성자에서만 검색
+                    - ALL: 제목과 작성자 모두에서 검색 (기본값)
                     """
     )
     @GetMapping("/{noticeType}/search")
     public ResponseEntity<NoticeListResponseDto> searchNotices(
             @PathVariable String noticeType,
             @RequestParam String keyword,
+            @RequestParam(required = false, defaultValue = "ALL") String searchType,
             @PageableDefault(size = 10, sort = "postDate", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.info("공지사항 검색. noticeType: {}, keyword: {}", noticeType, keyword);
+        log.info("공지사항 검색. noticeType: {}, keyword: {}, searchType: {}", noticeType, keyword, searchType);
 
-        NoticeListResponseDto responseDto = noticeService.searchNotices(noticeType, keyword, pageable);
+        NoticeListResponseDto responseDto = noticeService.searchNotices(noticeType, keyword, searchType, pageable);
         return ResponseEntity.ok(responseDto);
     }
 }

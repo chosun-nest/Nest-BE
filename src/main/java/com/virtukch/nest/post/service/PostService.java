@@ -268,10 +268,10 @@ public class PostService {
     
     /**
      * 키워드로 게시글을 검색합니다.
-     * 검색 타입에 따라 제목, 내용 또는 전체에서 검색할 수 있습니다.
+     * 검색 타입에 따라 제목, 내용, 작성자 또는 전체에서 검색할 수 있습니다.
      *
      * @param keyword 검색 키워드
-     * @param searchType 검색 타입 (TITLE, CONTENT, ALL)
+     * @param searchType 검색 타입 (TITLE, CONTENT, AUTHOR, ALL)
      * @param pageable 페이징 정보
      * @return 검색된 게시글 목록과 페이징 정보를 담은 응답 DTO
      */
@@ -287,8 +287,32 @@ public class PostService {
             case "CONTENT" -> postPage = postRepository
                     .searchByContent(keyword, pageable);
 
-            default -> postPage = postRepository
-                    .searchByTitleOrContent(keyword, keyword, pageable);
+            case "AUTHOR" -> {
+                // 작성자 이름으로 memberId 찾기
+                List<Long> memberIds = memberRepository.findByMemberNameContaining(keyword).stream()
+                        .map(Member::getMemberId)
+                        .toList();
+
+                if (memberIds.isEmpty()) {
+                    postPage = Page.empty(pageable);
+                } else {
+                    postPage = postRepository.searchByMemberIds(memberIds, pageable);
+                }
+            }
+
+            default -> {
+                // ALL: 제목, 내용, 작성자 모두 검색
+                List<Long> memberIds = memberRepository.findByMemberNameContaining(keyword).stream()
+                        .map(Member::getMemberId)
+                        .toList();
+
+                if (memberIds.isEmpty()) {
+                    // 작성자 결과가 없으면 제목+내용만 검색
+                    postPage = postRepository.searchByTitleOrContentOnly(keyword, pageable);
+                } else {
+                    postPage = postRepository.searchByAllWithMemberIds(keyword, memberIds, pageable);
+                }
+            }
         }
 
         return buildPostListResponse(postPage);
@@ -300,7 +324,7 @@ public class PostService {
      *
      * @param keyword 검색 키워드
      * @param tags 필터링할 태그 이름 목록
-     * @param searchType 검색 타입 (TITLE, CONTENT, ALL)
+     * @param searchType 검색 타입 (TITLE, CONTENT, AUTHOR, ALL)
      * @param pageable 페이징 정보
      * @return 검색된 게시글 목록과 페이징 정보를 담은 응답 DTO
      */
@@ -331,8 +355,31 @@ public class PostService {
                     .searchByTitleInIds(postIds, keyword, pageable);
             case "CONTENT" -> postPage = postRepository
                     .searchByContentInIds(postIds, keyword, pageable);
-            default -> postPage = postRepository
-                    .searchByTitleOrContentInIds(postIds, keyword, postIds, keyword, pageable);
+            case "AUTHOR" -> {
+                // 작성자 이름으로 memberId 찾기
+                List<Long> memberIds = memberRepository.findByMemberNameContaining(keyword).stream()
+                        .map(Member::getMemberId)
+                        .toList();
+
+                if (memberIds.isEmpty()) {
+                    postPage = Page.empty(pageable);
+                } else {
+                    postPage = postRepository.searchByMemberIdsInIds(postIds, memberIds, pageable);
+                }
+            }
+            default -> {
+                // ALL: 제목, 내용, 작성자 모두 검색
+                List<Long> memberIds = memberRepository.findByMemberNameContaining(keyword).stream()
+                        .map(Member::getMemberId)
+                        .toList();
+
+                if (memberIds.isEmpty()) {
+                    // 작성자 결과가 없으면 제목+내용만 검색
+                    postPage = postRepository.searchByTitleOrContentInIds(postIds, keyword, postIds, keyword, pageable);
+                } else {
+                    postPage = postRepository.searchByAllWithMemberIdsInIds(postIds, keyword, memberIds, pageable);
+                }
+            }
         }
 
         return buildPostListResponse(postPage);

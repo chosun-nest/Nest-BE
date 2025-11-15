@@ -431,16 +431,30 @@ public class ProjectService {
         switch (searchType.toUpperCase()) {
             case "TITLE" -> projectPage = projectRepository.searchByProjectTitle(keyword, pageable);
             case "CONTENT" -> projectPage = projectRepository.searchByProjectDescriptionContaining(keyword, pageable);
-            default -> {
-                List<Long> titleIds = projectRepository.findIdsByProjectTitle(keyword);
-                List<Long> descriptionIds = projectRepository.findIdsByProjectDescription(keyword);
+            case "AUTHOR" -> {
+                // 작성자 이름으로 memberId 찾기
+                List<Long> memberIds = memberRepository.findByMemberNameContaining(keyword).stream()
+                        .map(Member::getMemberId)
+                        .toList();
 
-                if (titleIds.isEmpty() && descriptionIds.isEmpty()) {
-                    return buildProjectListResponse(Page.empty(pageable));
+                if (memberIds.isEmpty()) {
+                    projectPage = Page.empty(pageable);
+                } else {
+                    projectPage = projectRepository.searchByMemberIds(memberIds, pageable);
                 }
+            }
+            default -> {
+                // ALL: 제목, 설명, 작성자 모두 검색
+                List<Long> memberIds = memberRepository.findByMemberNameContaining(keyword).stream()
+                        .map(Member::getMemberId)
+                        .toList();
 
-                projectPage = projectRepository.searchByProjectTitleOrProjectDescriptionInIds(
-                        titleIds, keyword, descriptionIds, keyword, pageable);
+                if (memberIds.isEmpty()) {
+                    // 작성자 결과가 없으면 제목+설명만 검색
+                    projectPage = projectRepository.searchByTitleOrDescriptionOnly(keyword, pageable);
+                } else {
+                    projectPage = projectRepository.searchByAllWithMemberIds(keyword, memberIds, pageable);
+                }
             }
         }
 
@@ -470,8 +484,31 @@ public class ProjectService {
                     .searchByProjectIdAndTitle(projectIds, keyword, pageable);
             case "CONTENT" -> projectPage = projectRepository
                     .searchByProjectIdAndDescription(projectIds, keyword, pageable);
-            default -> projectPage = projectRepository
-                    .searchByProjectIdAndTitleOrDescription(projectIds, keyword, projectIds, keyword, pageable);
+            case "AUTHOR" -> {
+                // 작성자 이름으로 memberId 찾기
+                List<Long> memberIds = memberRepository.findByMemberNameContaining(keyword).stream()
+                        .map(Member::getMemberId)
+                        .toList();
+
+                if (memberIds.isEmpty()) {
+                    projectPage = Page.empty(pageable);
+                } else {
+                    projectPage = projectRepository.searchByMemberIdsInIds(projectIds, memberIds, pageable);
+                }
+            }
+            default -> {
+                // ALL: 제목, 설명, 작성자 모두 검색
+                List<Long> memberIds = memberRepository.findByMemberNameContaining(keyword).stream()
+                        .map(Member::getMemberId)
+                        .toList();
+
+                if (memberIds.isEmpty()) {
+                    // 작성자 결과가 없으면 제목+설명만 검색
+                    projectPage = projectRepository.searchByProjectIdAndTitleOrDescription(projectIds, keyword, projectIds, keyword, pageable);
+                } else {
+                    projectPage = projectRepository.searchByAllWithMemberIdsInIds(projectIds, keyword, memberIds, pageable);
+                }
+            }
         }
 
         return buildProjectListResponse(projectPage);

@@ -54,4 +54,39 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> searchByTitleOrContent(@Param("title") String title,
                                       @Param("content") String content,
                                       Pageable pageable);
+
+    // 작성자 ID로 검색
+    @Query("SELECT p FROM Post p WHERE p.memberId IN :memberIds")
+    Page<Post> searchByMemberIds(@Param("memberIds") Collection<Long> memberIds, Pageable pageable);
+
+    // 특정 게시글 ID 목록에서 작성자 ID로 검색
+    @Query("SELECT p FROM Post p WHERE p.id IN :postIds AND p.memberId IN :memberIds")
+    Page<Post> searchByMemberIdsInIds(@Param("postIds") Collection<Long> postIds,
+                                      @Param("memberIds") Collection<Long> memberIds,
+                                      Pageable pageable);
+
+    // 제목 또는 내용 검색 (작성자는 별도 처리)
+    @Query("SELECT DISTINCT p FROM Post p WHERE " +
+            "UPPER(p.title) LIKE UPPER(CONCAT('%', :keyword, '%')) OR " +
+            "p.content LIKE CONCAT('%', :keyword, '%')")
+    Page<Post> searchByTitleOrContentOnly(@Param("keyword") String keyword, Pageable pageable);
+
+    // 제목, 내용, 작성자 ID를 모두 검색 (ALL 타입)
+    @Query("SELECT DISTINCT p FROM Post p WHERE " +
+            "UPPER(p.title) LIKE UPPER(CONCAT('%', :keyword, '%')) OR " +
+            "p.content LIKE CONCAT('%', :keyword, '%') OR " +
+            "p.memberId IN :memberIds")
+    Page<Post> searchByAllWithMemberIds(@Param("keyword") String keyword,
+                                        @Param("memberIds") Collection<Long> memberIds,
+                                        Pageable pageable);
+
+    // 특정 ID 목록에서 제목, 내용, 작성자 ID 모두 검색
+    @Query("SELECT DISTINCT p FROM Post p WHERE p.id IN :postIds AND (" +
+            "UPPER(p.title) LIKE UPPER(CONCAT('%', :keyword, '%')) OR " +
+            "p.content LIKE CONCAT('%', :keyword, '%') OR " +
+            "p.memberId IN :memberIds)")
+    Page<Post> searchByAllWithMemberIdsInIds(@Param("postIds") Collection<Long> postIds,
+                                            @Param("keyword") String keyword,
+                                            @Param("memberIds") Collection<Long> memberIds,
+                                            Pageable pageable);
 }

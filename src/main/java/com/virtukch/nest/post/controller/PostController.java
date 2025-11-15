@@ -157,29 +157,31 @@ public class PostController {
             summary = "게시글 검색",
             description = """
                     키워드를 사용하여 게시글을 검색합니다.
-                    
+
                     ## 검색 키워드
                     - `keyword`: 검색할 키워드
-                    
+
                     ## 검색 타입
-                    - `searchType`: 검색 타입 (ALL, TITLE, CONTENT)
-                    - ALL: 제목과 내용에서 검색 (기본값)
+                    - `searchType`: 검색 타입 (ALL, TITLE, CONTENT, AUTHOR)
+                    - ALL: 제목, 내용, 작성자 모두에서 검색 (기본값)
                     - TITLE: 제목에서만 검색
                     - CONTENT: 내용에서만 검색
-                    
+                    - AUTHOR: 작성자 이름에서만 검색
+
                     ## 태그 필터링
                     - 태그 필터링을 추가하려면 `?tags=JAVA&tags=SPRING`과 같이 전달하세요.
-                    
-                    ## 페이지네이션 
+
+                    ## 페이지네이션
                     - 페이지 번호: `?page=0` (기본값: 0, 첫 페이지)
                     - 페이지 크기: `?size=10` (기본값: 10, 페이지당 10개 항목)
-                    
+
                     ## 정렬
                     - 단일 필드 정렬: `?sort=createdAt,desc` (기본값: createdAt,desc)
                     - 다중 필드 정렬: `?sort=viewCount,desc&sort=createdAt,desc`
-                    
+
                     ## 전체 사용 예시
                     - `/api/v1/posts/search?keyword=스프링&searchType=TITLE&page=0&size=10&sort=createdAt,desc&tags=JAVA`
+                    - `/api/v1/posts/search?keyword=홍길동&searchType=AUTHOR&page=0&size=10`
                     """
     )
     @GetMapping("/search")

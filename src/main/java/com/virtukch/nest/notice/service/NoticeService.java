@@ -107,12 +107,13 @@ public class NoticeService {
      *
      * @param noticeType 공지사항 유형
      * @param keyword    검색 키워드
+     * @param searchType 검색 타입 (TITLE, AUTHOR, ALL)
      * @return 검색 결과 DTO 목록
      * @throws InvalidNoticeTypeException 유효하지 않은 공지사항 유형이 있을 경우
      * @throws InvalidNoticeDataException 유효하지 않은 공지 유형이나 키워드일 경우
      */
     @Transactional(readOnly = true)
-    public NoticeListResponseDto searchNotices(String noticeType, String keyword, Pageable pageable) {
+    public NoticeListResponseDto searchNotices(String noticeType, String keyword, String searchType, Pageable pageable) {
         if (noticeType == null || noticeType.isBlank()) {
             throw new InvalidNoticeTypeException("공지사항 유형이 지정되지 않았습니다.");
         }
@@ -121,8 +122,35 @@ public class NoticeService {
             throw new InvalidNoticeDataException("검색 키워드가 지정되지 않았습니다.");
         }
 
-        Page<Notice> noticePage = noticeRepository.findByNoticeTypeAndTitleContainingOrderByPostDateDesc(noticeType, keyword, pageable);
+        Page<Notice> noticePage;
+
+        // 검색 타입에 따라 다른 메서드 호출
+        switch (searchType.toUpperCase()) {
+            case "TITLE" -> noticePage = noticeRepository
+                    .findByNoticeTypeAndTitleContainingOrderByPostDateDesc(noticeType, keyword, pageable);
+
+            case "AUTHOR" -> noticePage = noticeRepository
+                    .findByNoticeTypeAndWriterContainingOrderByPostDateDesc(noticeType, keyword, pageable);
+
+            default -> noticePage = noticeRepository
+                    .findByNoticeTypeAndTitleOrWriterContainingOrderByPostDateDesc(noticeType, keyword, pageable);
+        }
+
         return buildListResponseDto(noticePage);
+    }
+
+    /**
+     * 공지사항을 검색합니다. (하위 호환성을 위한 메서드)
+     *
+     * @param noticeType 공지사항 유형
+     * @param keyword    검색 키워드
+     * @return 검색 결과 DTO 목록
+     * @throws InvalidNoticeTypeException 유효하지 않은 공지사항 유형이 있을 경우
+     * @throws InvalidNoticeDataException 유효하지 않은 공지 유형이나 키워드일 경우
+     */
+    @Transactional(readOnly = true)
+    public NoticeListResponseDto searchNotices(String noticeType, String keyword, Pageable pageable) {
+        return searchNotices(noticeType, keyword, "ALL", pageable);
     }
 
 

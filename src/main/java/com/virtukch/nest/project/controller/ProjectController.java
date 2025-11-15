@@ -244,9 +244,10 @@ public class ProjectController {
 
             ## 검색 타입
             - `searchType`: 검색 범위 지정 (선택, 기본값: ALL)
-                - ALL: 제목과 설명에서 검색 (기본값)
+                - ALL: 제목, 설명, 작성자 모두에서 검색 (기본값)
                 - TITLE: 제목에서만 검색
                 - CONTENT: 설명에서만 검색
+                - AUTHOR: 작성자 이름에서만 검색
 
             ## 태그 필터링
             - 태그 필터링을 추가하려면 `?tags=JAVA&tags=SPRING`과 같이 전달하세요
@@ -268,6 +269,7 @@ public class ProjectController {
             ## 전체 사용 예시
             - `/api/v1/projects/search?keyword=스프링&searchType=TITLE&page=0&size=10&sort=createdAt,desc&tags=JAVA`
             - `/api/v1/projects/search?keyword=웹 개발&searchType=ALL&tags=REACT&tags=NODE_JS`
+            - `/api/v1/projects/search?keyword=홍길동&searchType=AUTHOR&page=0&size=10`
 
             ## 응답 코드
             - 200 OK: 검색 성공 (결과가 없어도 200 반환)
