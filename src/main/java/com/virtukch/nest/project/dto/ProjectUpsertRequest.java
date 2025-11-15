@@ -1,5 +1,6 @@
 package com.virtukch.nest.project.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.virtukch.nest.project_member.model.ProjectMember;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -30,6 +31,7 @@ public class ProjectUpsertRequest {
     private List<ProjectSlotDto> slots;
 
     @Schema(description = "하위호환: map 구조도 허용(slots가 없을 때 사용)")
+    @JsonProperty("parts")  // 프론트엔드에서 "parts"로 보내면 "partCounts"에 매핑
     private Map<ProjectMember.Part, Integer> partCounts;
 
     @Schema(description = "작성자 파트(슬롯에 포함되어야 함)", example = "BACKEND")

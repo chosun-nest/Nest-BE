@@ -1,5 +1,6 @@
 package com.virtukch.nest.project.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.virtukch.nest.project_member.model.ProjectMember;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
@@ -18,6 +19,7 @@ public class ProjectWithImagesRequestDto {
     private Boolean isRecruiting;
     private List<String> tags;
     private List<MultipartFile> images;
+    @JsonProperty("parts")  // 프론트엔드에서 "parts"로 보내면 "partCounts"에 매핑
     private Map<ProjectMember.Part, Integer> partCounts;
     private ProjectMember.Part creatorPart; // 작성자가 들어갈 파트
     private ProjectMember.Role creatorRole = ProjectMember.Role.LEADER; // 기본값 LEADER

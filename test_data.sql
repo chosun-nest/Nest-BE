@@ -365,6 +365,12 @@ INSERT INTO project_member (project_member_id, project_id, member_id, role, part
 (44, 10, NULL, 'MEMBER', 'DESIGN');
 
 -- ============================================
+-- SEQUENCE 초기화
+-- ============================================
+-- ProjectMember sequence를 45 이상으로 초기화 (마지막 ID가 44이므로)
+UPDATE project_member_seq SET next_val = 100 WHERE next_val < 100;
+
+-- ============================================
 -- 삽입 완료 메시지
 -- ============================================
 SELECT 'Test data insertion completed! 100 members, 20 posts, 10 projects, and project members added.' AS message;
