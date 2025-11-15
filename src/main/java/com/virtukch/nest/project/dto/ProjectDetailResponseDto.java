@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Builder
@@ -30,6 +31,10 @@ public class ProjectDetailResponseDto {
 
     private Integer currentNumberOfMembers;
     private Integer maximumNumberOfMembers;
+
+    private Map<String, Integer> parts;
+    private String creatorPart;
+    private String creatorRole;
 
     private List<ProjectMemberSimpleDto> projectMembers;
     private Boolean isRecruiting;

@@ -3,6 +3,7 @@
 -- ============================================
 -- 사용 방법: MySQL에 접속하여 실행
 -- docker cp [호스트_파일_경로] [컨테이너_ID 또는 이름]:[컨테이너_내_경로]
+-- docker cp test_data.sql nest-mysql:/tmp
 -- mysql -u root -p nest_db < test_data.sql
 
 -- Character Set 설정
@@ -295,6 +296,75 @@ INSERT INTO project_tag (project_id, tag_id) VALUES
 (10, 1), (10, 2);
 
 -- ============================================
+-- PROJECT_MEMBER 테이블 테스트 데이터
+-- ============================================
+-- 슬롯 구조: 각 프로젝트의 리더(member_id 있음)와 모집 중인 포지션(member_id NULL)
+INSERT INTO project_member (project_member_id, project_id, member_id, role, part) VALUES
+-- Project 1: 헬스케어 웹앱 (리더: member 7, 모집: 프론트 1, 백엔드 1, 디자인 1)
+(1, 1, 7, 'LEADER', 'FRONTEND'),
+(2, 1, NULL, 'MEMBER', 'FRONTEND'),
+(3, 1, NULL, 'MEMBER', 'BACKEND'),
+(4, 1, NULL, 'MEMBER', 'DESIGN'),
+
+-- Project 2: AI 챗봇 (리더: member 38, 모집: AI 1, 백엔드 1, 프론트 1)
+(5, 2, 38, 'LEADER', 'AI'),
+(6, 2, NULL, 'MEMBER', 'AI'),
+(7, 2, NULL, 'MEMBER', 'BACKEND'),
+(8, 2, NULL, 'MEMBER', 'FRONTEND'),
+
+-- Project 3: 중고거래 앱 (리더: member 53, 모집: Flutter(프론트) 2, 백엔드 1)
+(9, 3, 53, 'LEADER', 'FRONTEND'),
+(10, 3, NULL, 'MEMBER', 'FRONTEND'),
+(11, 3, NULL, 'MEMBER', 'FRONTEND'),
+(12, 3, NULL, 'MEMBER', 'BACKEND'),
+
+-- Project 4: 2D 게임 (리더: member 43, 모집: 프로그래머 2, 아티스트 1, 사운드 1)
+(13, 4, 43, 'LEADER', 'FRONTEND'),
+(14, 4, NULL, 'MEMBER', 'FRONTEND'),
+(15, 4, NULL, 'MEMBER', 'FRONTEND'),
+(16, 4, NULL, 'MEMBER', 'DESIGN'),
+(17, 4, NULL, 'MEMBER', 'DESIGN'),
+
+-- Project 5: 공공데이터 분석 (리더: member 48, 모집: 데이터 분석 2, 웹개발 1)
+(18, 5, 48, 'LEADER', 'AI'),
+(19, 5, NULL, 'MEMBER', 'AI'),
+(20, 5, NULL, 'MEMBER', 'AI'),
+(21, 5, NULL, 'MEMBER', 'FRONTEND'),
+
+-- Project 6: 스마트 팜 IoT (리더: member 62, 모집: 임베디드 1, 백엔드 1, 프론트 1)
+(22, 6, 62, 'LEADER', 'ETC'),
+(23, 6, NULL, 'MEMBER', 'ETC'),
+(24, 6, NULL, 'MEMBER', 'BACKEND'),
+(25, 6, NULL, 'MEMBER', 'FRONTEND'),
+
+-- Project 7: NFT 플랫폼 (리더: member 42, 모집: 블록체인 1, 프론트 1, 백엔드 1)
+(26, 7, 42, 'LEADER', 'BACKEND'),
+(27, 7, NULL, 'MEMBER', 'BACKEND'),
+(28, 7, NULL, 'MEMBER', 'FRONTEND'),
+(29, 7, NULL, 'MEMBER', 'BACKEND'),
+
+-- Project 8: 취약점 스캐너 (리더: member 33, 모집: 보안 1, Python 1, 프론트 1)
+(30, 8, 33, 'LEADER', 'BACKEND'),
+(31, 8, NULL, 'MEMBER', 'BACKEND'),
+(32, 8, NULL, 'MEMBER', 'BACKEND'),
+(33, 8, NULL, 'MEMBER', 'FRONTEND'),
+
+-- Project 9: 코딩 교육 플랫폼 (리더: member 95, 모집: 풀스택 2, 백엔드 1, DevOps 1)
+(34, 9, 95, 'LEADER', 'FRONTEND'),
+(35, 9, NULL, 'MEMBER', 'FRONTEND'),
+(36, 9, NULL, 'MEMBER', 'FRONTEND'),
+(37, 9, NULL, 'MEMBER', 'BACKEND'),
+(38, 9, NULL, 'MEMBER', 'ETC'),
+
+-- Project 10: 개발자 SNS (리더: member 25, 모집: 프론트 2, 백엔드 2, 디자이너 1)
+(39, 10, 25, 'LEADER', 'FRONTEND'),
+(40, 10, NULL, 'MEMBER', 'FRONTEND'),
+(41, 10, NULL, 'MEMBER', 'FRONTEND'),
+(42, 10, NULL, 'MEMBER', 'BACKEND'),
+(43, 10, NULL, 'MEMBER', 'BACKEND'),
+(44, 10, NULL, 'MEMBER', 'DESIGN');
+
+-- ============================================
 -- 삽입 완료 메시지
 -- ============================================
-SELECT 'Test data insertion completed! 100 members, 20 posts, and 10 projects added.' AS message;
+SELECT 'Test data insertion completed! 100 members, 20 posts, 10 projects, and project members added.' AS message;

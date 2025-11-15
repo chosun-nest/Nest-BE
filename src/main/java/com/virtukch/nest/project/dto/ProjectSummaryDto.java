@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Builder
@@ -15,6 +16,9 @@ public class ProjectSummaryDto {
     private String previewContent;
     private Integer currentNumberOfMembers;
     private Integer maximumNumberOfMembers;
+    private Map<String, Integer> parts;
+    private String creatorPart;
+    private String creatorRole;
     private ProjectAuthorDto author;
     private List<String> tags;
     private Integer viewCount;

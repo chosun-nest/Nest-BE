@@ -145,6 +145,22 @@ public class ProjectService {
                 ));
         Boolean isRecruiting = project.getIsRecruiting();
 
+        // Calculate parts (role-based slot counts)
+        Map<String, Integer> parts = projectMembers.stream()
+                .collect(Collectors.groupingBy(
+                        pm -> pm.getPart().name(),
+                        Collectors.collectingAndThen(Collectors.counting(), Long::intValue)
+                ));
+
+        // Find creator part and role
+        ProjectMember leader = projectMembers.stream()
+                .filter(pm -> pm.getRole() == ProjectMember.Role.LEADER)
+                .findFirst()
+                .orElse(null);
+
+        String creatorPart = leader != null ? leader.getPart().name() : null;
+        String creatorRole = leader != null ? leader.getRole().name() : null;
+
         return ProjectDtoConverter.toDetailResponseDto(
             project,
             creator,
@@ -153,7 +169,10 @@ public class ProjectService {
             memberIdToName,
             isRecruiting,
             currentNumberOfMembers,
-            maximumNumberOfMembers
+            maximumNumberOfMembers,
+            parts,
+            creatorPart,
+            creatorRole
         );
     }
 
@@ -606,7 +625,23 @@ public class ProjectService {
         int currentNumberOfMembers = (int) members.stream().filter(pm -> pm.getMemberId() != null).count();
         int maximumNumberOfMembers = members.size();
 
-        return ProjectDtoConverter.toSummaryDto(project, memberName, tagNames, commentCount, imageUrl, isRecruiting, currentNumberOfMembers, maximumNumberOfMembers);
+        // Calculate parts (role-based slot counts)
+        Map<String, Integer> parts = members.stream()
+                .collect(Collectors.groupingBy(
+                        pm -> pm.getPart().name(),
+                        Collectors.collectingAndThen(Collectors.counting(), Long::intValue)
+                ));
+
+        // Find creator part and role
+        ProjectMember leader = members.stream()
+                .filter(pm -> pm.getRole() == ProjectMember.Role.LEADER)
+                .findFirst()
+                .orElse(null);
+
+        String creatorPart = leader != null ? leader.getPart().name() : null;
+        String creatorRole = leader != null ? leader.getRole().name() : null;
+
+        return ProjectDtoConverter.toSummaryDto(project, memberName, tagNames, commentCount, imageUrl, isRecruiting, currentNumberOfMembers, maximumNumberOfMembers, parts, creatorPart, creatorRole);
     }
 
     private Map<Long, Long> fetchCommentCountMap(List<Project> projects) {

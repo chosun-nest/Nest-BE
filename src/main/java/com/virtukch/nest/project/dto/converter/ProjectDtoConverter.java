@@ -33,7 +33,7 @@ public class ProjectDtoConverter {
                 .build();
     }
 
-    public static ProjectSummaryDto toSummaryDto(Project project, String memberName, List<String> tagNames, Long commentCount, String imageUrl, Boolean isRecruiting, int currentNumberOfMembers, int maximumNumberOfMembers) {
+    public static ProjectSummaryDto toSummaryDto(Project project, String memberName, List<String> tagNames, Long commentCount, String imageUrl, Boolean isRecruiting, int currentNumberOfMembers, int maximumNumberOfMembers, Map<String, Integer> parts, String creatorPart, String creatorRole) {
         return ProjectSummaryDto.builder()
                 .projectId(project.getProjectId())
                 .projectTitle(project.getProjectTitle())
@@ -51,10 +51,13 @@ public class ProjectDtoConverter {
                 .isRecruiting(isRecruiting)
                 .currentNumberOfMembers(currentNumberOfMembers)
                 .maximumNumberOfMembers(maximumNumberOfMembers)
+                .parts(parts)
+                .creatorPart(creatorPart)
+                .creatorRole(creatorRole)
                 .build();
     }
 
-    public static ProjectDetailResponseDto toDetailResponseDto(Project project, Member leader, List<String> tagNames, List<ProjectMember> projectMemberList, Map<Long, String> memberIdToName, Boolean isRecruiting, int currentNumberOfMembers, int maximumNumberOfMembers) {
+    public static ProjectDetailResponseDto toDetailResponseDto(Project project, Member leader, List<String> tagNames, List<ProjectMember> projectMemberList, Map<Long, String> memberIdToName, Boolean isRecruiting, int currentNumberOfMembers, int maximumNumberOfMembers, Map<String, Integer> parts, String creatorPart, String creatorRole) {
         List<ProjectMemberSimpleDto> memberDtos = projectMemberList.stream().map(pm -> {
             ProjectMemberSimpleDto dto = new ProjectMemberSimpleDto();
             dto.setPart(pm.getPart());
@@ -82,6 +85,9 @@ public class ProjectDtoConverter {
                 .isRecruiting(isRecruiting)
                 .currentNumberOfMembers(currentNumberOfMembers)
                 .maximumNumberOfMembers(maximumNumberOfMembers)
+                .parts(parts)
+                .creatorPart(creatorPart)
+                .creatorRole(creatorRole)
                 .build();
     }
 
